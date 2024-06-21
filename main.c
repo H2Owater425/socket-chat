@@ -34,20 +34,28 @@ int main(int argumentCount, char *arguments[]) {
 
 									memset(buffer, 0, BUFFER_SIZE + 1);
 
-									Target target = {
+									Connection connection = {
 										clientSocket,
 										buffer,
 										inet_ntoa(clientAddress->sin_addr)
 									};
 
-									printf("ACCEPTED(%s)\n", target.ip);
+									printf("ACCEPTED(%s)\n", connection.ip);
 
-									if(CloseHandle((HANDLE)_beginthreadex(NULL, 0, (_beginthreadex_proc_type)receive, &target, 0, NULL)) != 0) {
+									if(CloseHandle((HANDLE)_beginthreadex(NULL, 0, (_beginthreadex_proc_type)receive, &connection, 0, NULL)) != 0) {
 										while(1) {
 											fputs(PREFIX, stdout);
 											fgets(buffer, 1024, stdin);
 
-											send(clientSocket, buffer, strlen(buffer), 0);
+											if(buffer[0] == 4 && buffer[1] == 10 && buffer[2] == 0) {
+												send(clientSocket, FINISH, 2, 0);
+
+												puts("FINISH");
+
+												return 0;
+											} else {
+												send(clientSocket, buffer, strlen(buffer), 0);
+											}
 										}
 
 										return 0;
@@ -95,20 +103,28 @@ int main(int argumentCount, char *arguments[]) {
 						if(recv(serverSocket, buffer, BUFFER_SIZE, 0) == HANDSHAKE_RESPONSE_LENGTH && strncmp(buffer, HANDSHAKE_RESPONSE, HANDSHAKE_RESPONSE_LENGTH) == 0) {
 							memset(buffer, 0, BUFFER_SIZE + 1);
 
-							Target target = {
+							Connection connection = {
 								serverSocket,
 								buffer,
 								inet_ntoa(serverAddress->sin_addr)
 							};
 
-							printf("CONNECTED(%s)\n", target.ip);
+							printf("CONNECTED(%s)\n", connection.ip);
 
-							if(CloseHandle((HANDLE)_beginthreadex(NULL, 0, (_beginthreadex_proc_type)receive, &target, 0, NULL)) != 0) {
+							if(CloseHandle((HANDLE)_beginthreadex(NULL, 0, (_beginthreadex_proc_type)receive, &connection, 0, NULL)) != 0) {
 								while(1) {
 									fputs(PREFIX, stdout);
 									fgets(buffer, 1024, stdin);
 
-									send(serverSocket, buffer, strlen(buffer), 0);
+									if(buffer[0] == 4 && buffer[1] == 10 && buffer[2] == 0) {
+										send(serverSocket, FINISH, 2, 0);
+
+										puts("FINISH");
+
+										return 0;
+									} else {
+										send(serverSocket, buffer, strlen(buffer), 0);
+									}
 								}
 
 								return 0;

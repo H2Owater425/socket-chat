@@ -16,9 +16,11 @@
 
 #define HANDSHAKE_RESPONSE "HI"
 
-#define PREFIX "LOCALHOST: "
+#define PREFIX "\r\033[KLOCALHOST: "
 
 #define HANDSHAKE_RESPONSE_LENGTH strlen(HANDSHAKE_RESPONSE)
+
+#define FINISH "\0"
 
 static inline SOCKADDR_IN *getAddress(char *ip, int port) {
 	SOCKADDR_IN *address = (SOCKADDR_IN *)calloc(1, sizeof(SOCKADDR_IN));
@@ -38,21 +40,15 @@ typedef struct {
 	SOCKET socket;
 	char* buffer;
 	char* ip;
-} Target;
+} Connection;
 
-DWORD WINAPI receive(Target* target) {
+DWORD WINAPI receive(Connection* connection) {
 	int bufferLength;
 
 	while(1) {
-		bufferLength = recv(target->socket, target->buffer, BUFFER_SIZE, 0);
+		bufferLength = recv(connection->socket, connection->buffer, BUFFER_SIZE, 0);
 
 		switch(bufferLength) {
-			case 0: {
-				puts("FINISH");
-
-				break;
-			}
-
 			case SOCKET_ERROR: {
 				printf("\nRECV_ERROR(%d)", WSAGetLastError());
 
@@ -62,13 +58,19 @@ DWORD WINAPI receive(Target* target) {
 			}
 
 			default: {
-				target->buffer[bufferLength] = '\0';
+				connection->buffer[bufferLength] = '\0';
 
-				printf("\n\033[A\033[K%s: %s", target->ip, target->buffer);
+				if(connection->buffer[0] != 0) {
+					printf("\n\033[A\033[K%s: %s", connection->ip, connection->buffer);
 
-				fputs(PREFIX, stdout);
+					fputs(PREFIX, stdout);
+					
+					break;
+				} else {
+					puts("\nFINISH");
 
-				break;
+					exit(0);
+				}
 			}
 		}
 	}
